@@ -1,11 +1,11 @@
 import mongoose, { Document, Schema } from "mongoose";
 import { Location, PropertyType } from "../types";
 
-interface IProperty extends Document {
+export interface IProperty extends Document {
   title: string;
   description?: string;
   price: number;
-  propetyType: PropertyType;
+  propertyType: PropertyType;
   location: Location;
   surfaceArea?: number;
   rooms?: number;
@@ -18,7 +18,7 @@ const propertySchema = new Schema<IProperty>(
     title: { type: String, required: true },
     description: { type: String },
     price: { type: Number, required: true },
-    propetyType: {
+    propertyType: {
       type: String,
       enum: Object.values(PropertyType),
       required: true,
