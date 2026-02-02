@@ -33,4 +33,36 @@ propertiesRouter.get("/:id", async (req, res, next): Promise<void> => {
     next(error);
   }
 });
+
+propertiesRouter.put("/:id", async (req, res, next) => {
+  try {
+    const updatedProperty = await propertiesService.updateProperty(
+      req.params.id,
+      req.body,
+    );
+    if (!updatedProperty) {
+      res.status(404).json({ error: "Property not found" });
+      return;
+    }
+    res.json(updatedProperty);
+  } catch (error) {
+    next(error);
+  }
+});
+
+propertiesRouter.delete("/:id", async (req, res, next) => {
+  try {
+    const deletedProperty = await propertiesService.deleteProperty(
+      req.params.id,
+    );
+    if (!deletedProperty) {
+      res.status(404).json({ error: "Property not found" });
+      return;
+    }
+    res.json({ message: "Property deleted successfully", deletedProperty });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default propertiesRouter;

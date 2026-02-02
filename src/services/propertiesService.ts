@@ -36,4 +36,37 @@ const getProperty = async (id: string) => {
   }
 };
 
-export default { getProperties, addProperty, getProperty };
+const updateProperty = async (id: string, data: Partial<IProperty>) => {
+  try {
+    const updateProperty = await Property.findByIdAndUpdate(id, data, {
+      new: true,
+      runValidators: true,
+    });
+    return updateProperty;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to update property: ${error.message}`);
+    }
+    throw new Error("Failed to update property due to unknown error");
+  }
+};
+
+const deleteProperty = async (id: string) => {
+  try {
+    const deletedProperty = await Property.findByIdAndDelete(id);
+    return deletedProperty;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to delete property: ${error.message}`);
+    }
+    throw new Error("Failed to delete property due to unknown error");
+  }
+};
+
+export default {
+  getProperties,
+  addProperty,
+  getProperty,
+  updateProperty,
+  deleteProperty,
+};
