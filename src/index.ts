@@ -3,6 +3,7 @@ import propertiesRouter from "./routes/propertiesRouter";
 import connectToDatabase from "./config/database";
 import cors from "cors";
 import { MONGODB_URI, PORT } from "./config/env";
+import { errorHandler } from "./middleware/errorHandler";
 const app = express();
 
 app.use(cors());
@@ -15,17 +16,7 @@ app.get("/ping", (_req, res) => {
 
 app.use("/api/properties", propertiesRouter);
 
-app.use(
-  (
-    err: Error,
-    _req: express.Request,
-    res: express.Response,
-    _next: express.NextFunction,
-  ) => {
-    console.error(err.message);
-    res.status(500).json({ error: err.message });
-  },
-);
+app.use(errorHandler);
 
 if (!MONGODB_URI) {
   throw new Error("MONGODB_URI is not defined in environment variables");
