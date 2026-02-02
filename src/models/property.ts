@@ -3,20 +3,22 @@ import { Location, PropertyType } from "../types";
 
 export interface IProperty extends Document {
   title: string;
-  description?: string;
+  ref: string;
+  description: string;
   price: number;
   propertyType: PropertyType;
   location: Location;
-  surfaceArea?: number;
+  area?: number;
   rooms?: number;
-  isForRent: boolean;
+  status: "sale" | "rent";
   images: string[];
 }
 
 const propertySchema = new Schema<IProperty>(
   {
     title: { type: String, required: true },
-    description: { type: String },
+    ref: { type: String, required: true },
+    description: { type: String, required: true },
     price: { type: Number, required: true },
     propertyType: {
       type: String,
@@ -28,9 +30,9 @@ const propertySchema = new Schema<IProperty>(
       enum: Object.values(Location),
       required: true,
     },
-    surfaceArea: { type: Number },
+    area: { type: Number },
     rooms: { type: Number },
-    isForRent: { type: Boolean, required: true },
+    status: { type: String, enum: ["sale", "rent"], required: true },
     images: {
       type: [String],
       validate: {
