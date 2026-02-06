@@ -6,3 +6,4 @@ export const PORT: number = process.env.PORT ? Number(process.env.PORT) : 3001;
 export const CLOUDINARY_NAME: string = process.env.CLOUDINARY_NAME ?? "";
 export const API_KEY: string = process.env.API_KEY ?? "";
 export const API_SECRET: string = process.env.API_SECRET ?? "";
+export const SECRET: string = process.env.JWT_SECRET ?? "";

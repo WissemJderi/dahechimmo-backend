@@ -53,3 +53,13 @@ PUT http://localhost:3001/api/properties/69807754fe444200b391b480 HTTP/1.1
 ### 
 
 DELETE http://localhost:3001/api/properties/69809b9592b1f21112a527fa HTTP/1.1
+
+
+### 
+
+POST http://localhost:3001/api/auth/login HTTP/1.1
+
+{
+  "password": "secret",
+  "username": "uncle"
+}

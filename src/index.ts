@@ -4,6 +4,7 @@ import connectToDatabase from "./config/database";
 import cors from "cors";
 import { MONGODB_URI, PORT } from "./config/env";
 import { errorHandler } from "./middleware/errorHandler";
+import authRouter from "./routes/authRouter";
 const app = express();
 
 app.use(cors());
@@ -14,6 +15,7 @@ app.get("/ping", (_req, res) => {
   res.send("pong");
 });
 
+app.use("/api/auth", authRouter);
 app.use("/api/properties", propertiesRouter);
 
 app.use(errorHandler);
