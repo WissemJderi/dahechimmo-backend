@@ -1,0 +1,55 @@
+### 
+
+GET http://localhost:3001/api/properties HTTP/1.1
+
+
+### 
+
+GET http://localhost:3001/api/properties/search?location=none&type=terrain HTTP/1.1
+
+
+### 
+
+GET http://localhost:3001/api/properties/6981948f5602db89c07a4431 HTTP/1.1
+
+
+### 
+
+POST http://localhost:3001/api/properties HTTP/1.1
+
+{
+  "area": 1000,
+  "description": "terrain tres jolie",
+  "images": [
+    "https://res.cloudinary.com/dbdwqn8na/image/upload/v1770099643/4_jgvz4f.webp",
+    "https://res.cloudinary.com/dbdwqn8na/image/upload/v1770099643/3_lznjiu.webp"
+  ],
+  "location": "akouda",
+  "longDescription": "🏢 Description du Logement\nType : Appartement S1 haut standing\nBâtiment : Résidence nouvellement construite\nTerrasse : Grande terrasse\nÉtat : Bien meublé et dans un environnement calme\nProfil recherché : Pour un bon profil de locataire\n\n💰 Location : 1150 DT par mois\n\nFrais de visite (obligatoires) : 20 DT\nCommission d'agence : 5% en cas de location",
+  "price": 250000,
+  "propertyType": "terrain",
+  "ref": "R001",
+  "status": "sale",
+  "title": "À VENDRE – MAISON VUE MER EXCEPTIONNELLE"
+}
+
+
+### 
+
+PUT http://localhost:3001/api/properties/69807754fe444200b391b480 HTTP/1.1
+
+{
+  "images": [
+    "https://res.cloudinary.com/demo/image/upload/v1234567890/villa1.jpg",
+    "https://res.cloudinary.com/demo/image/upload/v1234567890/villa2.jpg"
+  ],
+  "isForRent": true,
+  "price": 360000,
+  "rooms": 7,
+  "title": "Updated Villa Title"
+}
+
+
+### 
+
+DELETE http://localhost:3001/api/properties/69809b9592b1f21112a527fa HTTP/1.1

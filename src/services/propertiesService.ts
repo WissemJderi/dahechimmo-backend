@@ -63,10 +63,32 @@ const deleteProperty = async (id: string) => {
   }
 };
 
+const searchProperties = async (location: string, type: string) => {
+  try {
+    if (location === "none") {
+      const properties = await Property.find({ propertyType: type });
+      return properties;
+    } else {
+      const properties = await Property.find({
+        location: location,
+        propertyType: type,
+      });
+
+      return properties;
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to delete property: ${error.message}`);
+    }
+    throw new Error("Failed to delete property due to unknown error");
+  }
+};
+
 export default {
   getProperties,
   addProperty,
   getProperty,
   updateProperty,
   deleteProperty,
+  searchProperties,
 };

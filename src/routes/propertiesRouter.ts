@@ -12,6 +12,22 @@ propertiesRouter.get("/", async (_req, res, next) => {
   }
 });
 
+propertiesRouter.get("/search", async (req, res, next) => {
+  try {
+    const { location, type } = req.query;
+
+    if (typeof location !== "string" || typeof type !== "string") {
+      res.status(400).json({ message: "Invalid query parameters" });
+      return;
+    }
+
+    const result = await propertiesService.searchProperties(location, type);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
 propertiesRouter.post("/", async (req, res, next) => {
   try {
     const newProperty = await propertiesService.addProperty(req.body);
