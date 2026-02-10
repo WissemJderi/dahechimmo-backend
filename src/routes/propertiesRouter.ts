@@ -5,6 +5,8 @@ import authService from "../services/authService";
 import jwt from "jsonwebtoken";
 import { SECRET } from "../config/env";
 import { getPublicIdFromUrl } from "../utils";
+import z from "zod";
+import { Location, PropertyType, Status } from "../types";
 const propertiesRouter = Router();
 
 propertiesRouter.get("/", async (_req, res, next) => {
@@ -54,7 +56,23 @@ propertiesRouter.post(
         return;
       }
 
-      const propertyData = {
+      const newPropertySchema = z.object({
+        title: z.string(),
+        ref: z.string(),
+        description: z.string(),
+        price: z.number().gte(1),
+        propertyType: z.enum(PropertyType),
+        location: z.enum(Location),
+        area: z.number().gte(1),
+        status: z.enum(Status),
+        images: z.array(z.string()).check(z.minLength(1), z.maxLength(5)),
+        bedrooms: z.number().optional(),
+        bathrooms: z.number().optional(),
+        floor: z.number().optional(),
+        parking: z.boolean(),
+      });
+
+      const propertyData = newPropertySchema.parse({
         title: req.body.title,
         ref: req.body.ref,
         description: req.body.description,
@@ -68,13 +86,16 @@ propertiesRouter.post(
         bathrooms: req.body.bathrooms ? Number(req.body.bathrooms) : undefined,
         floor: req.body.floor ? Number(req.body.floor) : undefined,
         parking: req.body.parking === "true",
-      };
+      });
 
       console.log("Property data:", propertyData);
 
       const newProperty = await propertiesService.addProperty(propertyData);
       res.status(201).json(newProperty);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).send({ error: error.issues });
+      }
       if (error instanceof jwt.TokenExpiredError) {
         res.status(401).json({ error: "token expired" });
         return;

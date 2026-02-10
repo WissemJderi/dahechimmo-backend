@@ -9,6 +9,11 @@ export enum PropertyType {
   Usine = "usine",
 }
 
+export enum Status {
+  Sale = "sale",
+  Rent = "rent",
+}
+
 export enum Location {
   Akouda = "akouda",
   HammamSousse = "hammam_sousse",
