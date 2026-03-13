@@ -14,7 +14,6 @@ app.use("/api/properties", propertiesRouter);
 app.use(express.json());
 
 app.get("/ping", (_req, res) => {
-  console.log("someone pinged here");
   res.send("pong");
 });
 

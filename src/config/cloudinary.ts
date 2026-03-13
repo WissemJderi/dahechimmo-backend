@@ -3,13 +3,6 @@ import { CloudinaryStorage } from "multer-storage-cloudinary";
 import multer from "multer";
 import { API_KEY, API_SECRET, CLOUDINARY_NAME } from "./env";
 
-// Debug: Check if env variables are loaded
-console.log("Cloudinary ENV check:", {
-  cloud_name: CLOUDINARY_NAME || "MISSING",
-  api_key: API_KEY ? "SET" : "MISSING",
-  api_secret: API_SECRET ? "SET" : "MISSING",
-});
-
 cloudinary.config({
   cloud_name: CLOUDINARY_NAME,
   api_key: API_KEY,

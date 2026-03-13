@@ -7,3 +7,5 @@ export const CLOUDINARY_NAME: string = process.env.CLOUDINARY_NAME ?? "";
 export const API_KEY: string = process.env.API_KEY ?? "";
 export const API_SECRET: string = process.env.API_SECRET ?? "";
 export const SECRET: string = process.env.JWT_SECRET ?? "";
+export const PASSWORD: string = process.env.PASSWORD ?? "";
+export const ADMIN: string = process.env.ADMIN ?? "";

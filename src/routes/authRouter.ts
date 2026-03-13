@@ -1,8 +1,9 @@
 import { Router } from "express";
 import jwt from "jsonwebtoken";
-import { SECRET } from "../config/env";
+import { SECRET, PASSWORD, ADMIN } from "../config/env";
 import propertiesService from "../services/propertiesService";
 import authService from "../services/authService";
+import bcrypt from "bcrypt";
 
 const authRouter = Router();
 
@@ -13,7 +14,7 @@ authRouter.post("/login", async (req, res) => {
     return res.status(400).json({ error: "username and password required" });
   }
 
-  if (username === "uncle" && password === "secret") {
+  if (username === ADMIN && (await bcrypt.compare(password, PASSWORD))) {
     const userForToken = {
       username: username,
     };
@@ -30,7 +31,7 @@ authRouter.get("/properties", async (req, res, next) => {
   const token = authService.getTokenFrom(req);
 
   if (!token) {
-    res.status(401).json({ error: `${token}` });
+    res.status(401).json({ error: "token missing or invalid" });
     return;
   }
 
