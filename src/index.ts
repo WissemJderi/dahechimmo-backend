@@ -8,16 +8,12 @@ import authRouter from "./routes/authRouter";
 const app = express();
 
 app.use(cors());
-
-app.use("/api/properties", propertiesRouter);
-
 app.use(express.json());
-
+app.use("/api/properties", propertiesRouter);
+app.use("/api/auth", authRouter);
 app.get("/ping", (_req, res) => {
   res.send("pong");
 });
-
-app.use("/api/auth", authRouter);
 
 app.use(errorHandler);
 

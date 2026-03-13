@@ -9,6 +9,9 @@ const authRouter = Router();
 
 authRouter.post("/login", async (req, res) => {
   const { username, password } = req.body;
+  console.log("Login attempt:", username);
+  console.log("ADMIN env:", ADMIN);
+  console.log("PASSWORD env:", PASSWORD ? "exists" : "missing");
 
   if (!username || !password) {
     return res.status(400).json({ error: "username and password required" });
