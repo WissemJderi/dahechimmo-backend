@@ -19,8 +19,8 @@ const authService_1 = __importDefault(require("../services/authService"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const env_1 = require("../config/env");
 const utils_1 = require("../utils");
+const propertySchemas_1 = require("../schemas/propertySchemas");
 const zod_1 = __importDefault(require("zod"));
-const types_1 = require("../types");
 const propertiesRouter = (0, express_1.Router)();
 propertiesRouter.get("/", (_req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -33,12 +33,12 @@ propertiesRouter.get("/", (_req, res, next) => __awaiter(void 0, void 0, void 0,
 }));
 propertiesRouter.get("/search", (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { location, type } = req.query;
-        if (typeof location !== "string" || typeof type !== "string") {
-            res.status(400).json({ message: "Invalid query parameters" });
+        const parsed = propertySchemas_1.searchParamsSchema.safeParse(req.query);
+        if (!parsed.success) {
+            res.status(400).json({ error: "Invalid query parameters" });
             return;
         }
-        const result = yield propertiesService_1.default.searchProperties(location, type);
+        const result = yield propertiesService_1.default.searchProperties(parsed.data);
         res.json(result);
     }
     catch (error) {
@@ -55,41 +55,26 @@ propertiesRouter.post("/", cloudinary_1.upload.array("images", 5), // Back to cl
     }
     try {
         jsonwebtoken_1.default.verify(token, env_1.SECRET);
-        const imageUrls = ((_a = req.files) === null || _a === void 0 ? void 0 : _a.map((file) => file.path)) ||
-            [];
+        const imageUrls = ((_a = req.files) === null || _a === void 0 ? void 0 : _a.map((file) => file.path)) || [];
         if (imageUrls.length === 0) {
             res.status(400).json({ error: "At least one image is required" });
             return;
         }
-        const newPropertySchema = zod_1.default.object({
-            title: zod_1.default.string(),
-            ref: zod_1.default.string(),
-            description: zod_1.default.string(),
-            price: zod_1.default.number().gte(1),
-            propertyType: zod_1.default.enum(types_1.PropertyType),
-            location: zod_1.default.enum(types_1.Location),
-            area: zod_1.default.number().gte(1),
-            status: zod_1.default.enum(types_1.Status),
-            images: zod_1.default.array(zod_1.default.string()).check(zod_1.default.minLength(1), zod_1.default.maxLength(5)),
-            bedrooms: zod_1.default.number().optional(),
-            bathrooms: zod_1.default.number().optional(),
-            floor: zod_1.default.number().optional(),
-            parking: zod_1.default.boolean(),
-        });
-        const propertyData = newPropertySchema.parse({
-            title: req.body.title,
-            ref: req.body.ref,
-            description: req.body.description,
-            price: Number(req.body.price),
-            propertyType: req.body.propertyType,
-            location: req.body.location,
-            area: Number(req.body.area),
-            status: req.body.status,
+        const body = req.body;
+        const propertyData = propertySchemas_1.propertySchema.parse({
+            title: body.title,
+            ref: body.ref,
+            description: body.description,
+            price: Number(body.price),
+            propertyType: body.propertyType,
+            location: body.location,
+            area: Number(body.area),
+            status: body.status,
             images: imageUrls,
-            bedrooms: req.body.bedrooms ? Number(req.body.bedrooms) : undefined,
-            bathrooms: req.body.bathrooms ? Number(req.body.bathrooms) : undefined,
-            floor: req.body.floor ? Number(req.body.floor) : undefined,
-            parking: req.body.parking === "true",
+            bedrooms: body.bedrooms ? Number(body.bedrooms) : undefined,
+            bathrooms: body.bathrooms ? Number(body.bathrooms) : undefined,
+            floor: body.floor ? Number(body.floor) : undefined,
+            parking: body.parking === "true",
         });
         const newProperty = yield propertiesService_1.default.addProperty(propertyData);
         res.status(201).json(newProperty);
@@ -111,6 +96,10 @@ propertiesRouter.post("/", cloudinary_1.upload.array("images", 5), // Back to cl
     }
 }));
 propertiesRouter.get("/:id", (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!propertySchemas_1.objectIdSchema.safeParse(req.params.id).success) {
+        res.status(400).json({ error: "Invalid property id" });
+        return;
+    }
     try {
         const property = yield propertiesService_1.default.getProperty(req.params.id);
         if (!property) {
@@ -124,6 +113,10 @@ propertiesRouter.get("/:id", (req, res, next) => __awaiter(void 0, void 0, void 
     }
 }));
 propertiesRouter.delete("/:id", (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!propertySchemas_1.objectIdSchema.safeParse(req.params.id).success) {
+        res.status(400).json({ error: "Invalid property id" });
+        return;
+    }
     const token = authService_1.default.getTokenFrom(req);
     if (!token) {
         res.status(401).json({ error: "token missing" });
@@ -162,6 +155,10 @@ propertiesRouter.delete("/:id", (req, res, next) => __awaiter(void 0, void 0, vo
 propertiesRouter.put("/:id", cloudinary_1.upload.array("images", 5), // Allow new images
 (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
+    if (!propertySchemas_1.objectIdSchema.safeParse(req.params.id).success) {
+        res.status(400).json({ error: "Invalid property id" });
+        return;
+    }
     const token = authService_1.default.getTokenFrom(req);
     if (!token) {
         res.status(401).json({ error: "token missing" });
@@ -176,11 +173,12 @@ propertiesRouter.put("/:id", cloudinary_1.upload.array("images", 5), // Allow ne
             return;
         }
         // Handle new images if uploaded
-        const newImageUrls = ((_a = req.files) === null || _a === void 0 ? void 0 : _a.map((file) => file.path)) ||
-            [];
+        const newImageUrls = ((_a = req.files) === null || _a === void 0 ? void 0 : _a.map((file) => file.path)) || [];
+        const body = req.body;
         // Parse existing images from request body (if frontend sends them)
-        const existingImages = req.body.existingImages
-            ? JSON.parse(req.body.existingImages)
+        const rawExistingImages = body.existingImages;
+        const existingImages = typeof rawExistingImages === "string"
+            ? JSON.parse(rawExistingImages)
             : existingProperty.images;
         // Combine existing + new images
         const allImages = [...existingImages, ...newImageUrls];
@@ -195,41 +193,24 @@ propertiesRouter.put("/:id", cloudinary_1.upload.array("images", 5), // Allow ne
         if (deletedImages.length > 0) {
             const deletePromises = deletedImages.map((imageUrl) => {
                 const publicId = (0, utils_1.getPublicIdFromUrl)(imageUrl);
-                console.log("Deleting old image:", publicId);
                 return cloudinary_1.cloudinary.uploader.destroy(publicId);
             });
             yield Promise.all(deletePromises);
         }
-        // Build update data with Zod validation
-        const updatePropertySchema = zod_1.default.object({
-            title: zod_1.default.string(),
-            ref: zod_1.default.string(),
-            description: zod_1.default.string(),
-            price: zod_1.default.number().gte(1),
-            propertyType: zod_1.default.enum(types_1.PropertyType),
-            location: zod_1.default.enum(types_1.Location),
-            area: zod_1.default.number().gte(1),
-            status: zod_1.default.enum(types_1.Status),
-            images: zod_1.default.array(zod_1.default.string()).min(1).max(5),
-            bedrooms: zod_1.default.number().optional(),
-            bathrooms: zod_1.default.number().optional(),
-            floor: zod_1.default.number().optional(),
-            parking: zod_1.default.boolean(),
-        });
-        const propertyData = updatePropertySchema.parse({
-            title: req.body.title,
-            ref: req.body.ref,
-            description: req.body.description,
-            price: Number(req.body.price),
-            propertyType: req.body.propertyType,
-            location: req.body.location,
-            area: Number(req.body.area),
-            status: req.body.status,
+        const propertyData = propertySchemas_1.propertySchema.parse({
+            title: body.title,
+            ref: body.ref,
+            description: body.description,
+            price: Number(body.price),
+            propertyType: body.propertyType,
+            location: body.location,
+            area: Number(body.area),
+            status: body.status,
             images: allImages,
-            bedrooms: req.body.bedrooms ? Number(req.body.bedrooms) : undefined,
-            bathrooms: req.body.bathrooms ? Number(req.body.bathrooms) : undefined,
-            floor: req.body.floor ? Number(req.body.floor) : undefined,
-            parking: req.body.parking === "true",
+            bedrooms: body.bedrooms ? Number(body.bedrooms) : undefined,
+            bathrooms: body.bathrooms ? Number(body.bathrooms) : undefined,
+            floor: body.floor ? Number(body.floor) : undefined,
+            parking: body.parking === "true",
         });
         const updatedProperty = yield propertiesService_1.default.updateProperty(req.params.id, propertyData);
         res.json(updatedProperty);

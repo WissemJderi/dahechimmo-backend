@@ -12,17 +12,15 @@ const errorHandler_1 = require("./middleware/errorHandler");
 const authRouter_1 = __importDefault(require("./routes/authRouter"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
-app.use("/api/properties", propertiesRouter_1.default);
 app.use(express_1.default.json());
+app.use("/api/properties", propertiesRouter_1.default);
+app.use("/api/auth", authRouter_1.default);
 app.get("/ping", (_req, res) => {
     res.send("pong");
 });
-app.use("/api/auth", authRouter_1.default);
 app.use(errorHandler_1.errorHandler);
 if (!env_1.MONGODB_URI) {
     throw new Error("MONGODB_URI is not defined in environment variables");
 }
-(0, database_1.default)(env_1.MONGODB_URI);
-app.listen(env_1.PORT, () => {
-    console.log(`Server running on port ${env_1.PORT}`);
-});
+void (0, database_1.default)(env_1.MONGODB_URI);
+app.listen(env_1.PORT);

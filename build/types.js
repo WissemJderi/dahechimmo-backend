@@ -28,6 +28,7 @@ var Location;
     Location["Kantaoui"] = "kantaoui";
     Location["Khzema"] = "khzema";
     Location["Sousse"] = "sousse";
+    Location["Sahloul"] = "sahloul";
     Location["SidiAbdelhamid"] = "sidi_abdelhamid";
     Location["SidiBouAli"] = "sidi_bouali";
     Location["ZaouietSousse"] = "zaouiet_sousse";

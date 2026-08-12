@@ -1,6 +1,6 @@
 import { Request } from "express";
 
-const getTokenFrom = (request: Request<any>) => {
+const getTokenFrom = (request: Request) => {
   const authorization = request.get("authorization");
   if (authorization && authorization.startsWith("Bearer ")) {
     return authorization.replace("Bearer ", "");

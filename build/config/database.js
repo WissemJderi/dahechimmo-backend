@@ -16,11 +16,10 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const connectToDatabase = (uri) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield mongoose_1.default.connect(uri);
-        console.log("connected to MongoDB");
     }
     catch (error) {
         if (error instanceof Error) {
-            console.log("error connection to MongoDB:", error.message);
+            console.error("error connection to MongoDB:", error.message);
             process.exit(1);
         }
         else {

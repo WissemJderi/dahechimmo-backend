@@ -1,87 +1,26 @@
 import Property, { IProperty } from "../models/property";
 
-const getProperties = async () => {
-  try {
-    const data = await Property.find({});
-    return data;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Failed to fetch properties: ${error.message}`);
-    }
-    throw new Error("Failed to fetch properties due to unknown error");
-  }
+const getProperties = () => Property.find({});
+
+const addProperty = (propertyData: Partial<IProperty>) => {
+  const property = new Property(propertyData);
+  return property.save();
 };
 
-const addProperty = async (propertyData: Partial<IProperty>) => {
-  try {
-    const property = new Property(propertyData);
-    return await property.save();
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Failed to create property: ${error.message}`);
-    }
-    throw new Error("Failed to create property due to unknown error");
-  }
-};
+const getProperty = (id: string) => Property.findById(id);
 
-const getProperty = async (id: string) => {
-  try {
-    const property = await Property.findById(id);
-    return property;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Failed to find property: ${error.message}`);
-    }
-    throw new Error("Failed to create property due to unknown error");
-  }
-};
+const updateProperty = (id: string, data: Partial<IProperty>) =>
+  Property.findByIdAndUpdate(id, data, { new: true, runValidators: true });
 
-const updateProperty = async (id: string, data: Partial<IProperty>) => {
-  try {
-    const updateProperty = await Property.findByIdAndUpdate(id, data, {
-      new: true,
-      runValidators: true,
-    });
-    return updateProperty;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Failed to update property: ${error.message}`);
-    }
-    throw new Error("Failed to update property due to unknown error");
-  }
-};
+const deleteProperty = (id: string) => Property.findByIdAndDelete(id);
 
-const deleteProperty = async (id: string) => {
-  try {
-    const deletedProperty = await Property.findByIdAndDelete(id);
-    return deletedProperty;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Failed to delete property: ${error.message}`);
-    }
-    throw new Error("Failed to delete property due to unknown error");
-  }
-};
+type SearchParams = { location?: string; type?: string };
 
-const searchProperties = async (location: string, type: string) => {
-  try {
-    if (location === "none") {
-      const properties = await Property.find({ propertyType: type });
-      return properties;
-    } else {
-      const properties = await Property.find({
-        location: location,
-        propertyType: type,
-      });
-
-      return properties;
-    }
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Failed to delete property: ${error.message}`);
-    }
-    throw new Error("Failed to delete property due to unknown error");
-  }
+const searchProperties = ({ location, type }: SearchParams) => {
+  const filter: Record<string, string> = {};
+  if (location && location !== "none") filter.location = location;
+  if (type && type !== "none") filter.propertyType = type;
+  return Property.find(filter);
 };
 
 export default {

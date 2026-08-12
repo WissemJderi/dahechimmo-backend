@@ -4,22 +4,27 @@ import { SECRET, PASSWORD, ADMIN } from "../config/env";
 import propertiesService from "../services/propertiesService";
 import authService from "../services/authService";
 import bcrypt from "bcrypt";
+import z from "zod";
 
 const authRouter = Router();
 
+const loginSchema = z.object({
+  username: z.string(),
+  password: z.string(),
+});
+
 authRouter.post("/login", async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) {
+  const parsed = loginSchema.safeParse(req.body);
+  if (!parsed.success) {
     return res.status(400).json({ error: "username and password required" });
   }
 
-  if (username === ADMIN && (await bcrypt.compare(password, PASSWORD))) {
-    const userForToken = {
-      username: username,
-    };
-    const token = jwt.sign(userForToken, SECRET, { expiresIn: "7d" });
+  const { username, password } = parsed.data;
 
-    return res.status(200).json({ token, username: username });
+  if (username === ADMIN && (await bcrypt.compare(password, PASSWORD))) {
+    const token = jwt.sign({ username }, SECRET, { expiresIn: "7d" });
+
+    return res.status(200).json({ token, username });
   }
   return res.status(401).json({
     error: "invalid username or password",

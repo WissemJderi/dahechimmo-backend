@@ -11,13 +11,11 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: async (_req, file) => {
-    return {
-      folder: "properties",
-      allowed_formats: ["jpg", "jpeg", "png", "webp"],
-      public_id: `${Date.now()}-${file.originalname}`,
-    };
-  },
+  params: (_req, file) => ({
+    folder: "properties",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    public_id: `${Date.now()}-${file.originalname}`,
+  }),
 });
 
 export const upload = multer({

@@ -5,8 +5,15 @@ import authService from "../services/authService";
 import jwt from "jsonwebtoken";
 import { SECRET } from "../config/env";
 import { getPublicIdFromUrl } from "../utils";
+import {
+  objectIdSchema,
+  propertySchema,
+  searchParamsSchema,
+} from "../schemas/propertySchemas";
 import z from "zod";
-import { Location, PropertyType, Status } from "../types";
+
+type PropertyFormBody = Record<string, unknown>;
+
 const propertiesRouter = Router();
 
 propertiesRouter.get("/", async (_req, res, next) => {
@@ -20,14 +27,14 @@ propertiesRouter.get("/", async (_req, res, next) => {
 
 propertiesRouter.get("/search", async (req, res, next) => {
   try {
-    const { location, type } = req.query;
+    const parsed = searchParamsSchema.safeParse(req.query);
 
-    if (typeof location !== "string" || typeof type !== "string") {
-      res.status(400).json({ message: "Invalid query parameters" });
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid query parameters" });
       return;
     }
 
-    const result = await propertiesService.searchProperties(location, type);
+    const result = await propertiesService.searchProperties(parsed.data);
     res.json(result);
   } catch (error) {
     next(error);
@@ -48,44 +55,29 @@ propertiesRouter.post(
       jwt.verify(token, SECRET);
 
       const imageUrls =
-        (req.files as Express.Multer.File[])?.map((file: any) => file.path) ||
-        [];
+        (req.files as Express.Multer.File[])?.map((file) => file.path) || [];
 
       if (imageUrls.length === 0) {
         res.status(400).json({ error: "At least one image is required" });
         return;
       }
 
-      const newPropertySchema = z.object({
-        title: z.string(),
-        ref: z.string(),
-        description: z.string(),
-        price: z.number().gte(1),
-        propertyType: z.enum(PropertyType),
-        location: z.enum(Location),
-        area: z.number().gte(1),
-        status: z.enum(Status),
-        images: z.array(z.string()).check(z.minLength(1), z.maxLength(5)),
-        bedrooms: z.number().optional(),
-        bathrooms: z.number().optional(),
-        floor: z.number().optional(),
-        parking: z.boolean(),
-      });
+      const body = req.body as PropertyFormBody;
 
-      const propertyData = newPropertySchema.parse({
-        title: req.body.title,
-        ref: req.body.ref,
-        description: req.body.description,
-        price: Number(req.body.price),
-        propertyType: req.body.propertyType,
-        location: req.body.location,
-        area: Number(req.body.area),
-        status: req.body.status,
+      const propertyData = propertySchema.parse({
+        title: body.title,
+        ref: body.ref,
+        description: body.description,
+        price: Number(body.price),
+        propertyType: body.propertyType,
+        location: body.location,
+        area: Number(body.area),
+        status: body.status,
         images: imageUrls,
-        bedrooms: req.body.bedrooms ? Number(req.body.bedrooms) : undefined,
-        bathrooms: req.body.bathrooms ? Number(req.body.bathrooms) : undefined,
-        floor: req.body.floor ? Number(req.body.floor) : undefined,
-        parking: req.body.parking === "true",
+        bedrooms: body.bedrooms ? Number(body.bedrooms) : undefined,
+        bathrooms: body.bathrooms ? Number(body.bathrooms) : undefined,
+        floor: body.floor ? Number(body.floor) : undefined,
+        parking: body.parking === "true",
       });
 
       const newProperty = await propertiesService.addProperty(propertyData);
@@ -108,6 +100,11 @@ propertiesRouter.post(
   },
 );
 propertiesRouter.get("/:id", async (req, res, next): Promise<void> => {
+  if (!objectIdSchema.safeParse(req.params.id).success) {
+    res.status(400).json({ error: "Invalid property id" });
+    return;
+  }
+
   try {
     const property = await propertiesService.getProperty(req.params.id);
     if (!property) {
@@ -121,6 +118,11 @@ propertiesRouter.get("/:id", async (req, res, next): Promise<void> => {
 });
 
 propertiesRouter.delete("/:id", async (req, res, next) => {
+  if (!objectIdSchema.safeParse(req.params.id).success) {
+    res.status(400).json({ error: "Invalid property id" });
+    return;
+  }
+
   const token = authService.getTokenFrom(req);
 
   if (!token) {
@@ -169,6 +171,11 @@ propertiesRouter.put(
   "/:id",
   upload.array("images", 5), // Allow new images
   async (req: Request<{ id: string }>, res, next) => {
+    if (!objectIdSchema.safeParse(req.params.id).success) {
+      res.status(400).json({ error: "Invalid property id" });
+      return;
+    }
+
     const token = authService.getTokenFrom(req);
 
     if (!token) {
@@ -191,13 +198,16 @@ propertiesRouter.put(
 
       // Handle new images if uploaded
       const newImageUrls =
-        (req.files as Express.Multer.File[])?.map((file: any) => file.path) ||
-        [];
+        (req.files as Express.Multer.File[])?.map((file) => file.path) || [];
+
+      const body = req.body as PropertyFormBody;
 
       // Parse existing images from request body (if frontend sends them)
-      const existingImages = req.body.existingImages
-        ? JSON.parse(req.body.existingImages)
-        : existingProperty.images;
+      const rawExistingImages = body.existingImages;
+      const existingImages: string[] =
+        typeof rawExistingImages === "string"
+          ? (JSON.parse(rawExistingImages) as string[])
+          : existingProperty.images;
 
       // Combine existing + new images
       const allImages = [...existingImages, ...newImageUrls];
@@ -217,43 +227,25 @@ propertiesRouter.put(
       if (deletedImages.length > 0) {
         const deletePromises = deletedImages.map((imageUrl) => {
           const publicId = getPublicIdFromUrl(imageUrl);
-          console.log("Deleting old image:", publicId);
           return cloudinary.uploader.destroy(publicId);
         });
         await Promise.all(deletePromises);
       }
 
-      // Build update data with Zod validation
-      const updatePropertySchema = z.object({
-        title: z.string(),
-        ref: z.string(),
-        description: z.string(),
-        price: z.number().gte(1),
-        propertyType: z.enum(PropertyType),
-        location: z.enum(Location),
-        area: z.number().gte(1),
-        status: z.enum(Status),
-        images: z.array(z.string()).min(1).max(5),
-        bedrooms: z.number().optional(),
-        bathrooms: z.number().optional(),
-        floor: z.number().optional(),
-        parking: z.boolean(),
-      });
-
-      const propertyData = updatePropertySchema.parse({
-        title: req.body.title,
-        ref: req.body.ref,
-        description: req.body.description,
-        price: Number(req.body.price),
-        propertyType: req.body.propertyType,
-        location: req.body.location,
-        area: Number(req.body.area),
-        status: req.body.status,
+      const propertyData = propertySchema.parse({
+        title: body.title,
+        ref: body.ref,
+        description: body.description,
+        price: Number(body.price),
+        propertyType: body.propertyType,
+        location: body.location,
+        area: Number(body.area),
+        status: body.status,
         images: allImages,
-        bedrooms: req.body.bedrooms ? Number(req.body.bedrooms) : undefined,
-        bathrooms: req.body.bathrooms ? Number(req.body.bathrooms) : undefined,
-        floor: req.body.floor ? Number(req.body.floor) : undefined,
-        parking: req.body.parking === "true",
+        bedrooms: body.bedrooms ? Number(body.bedrooms) : undefined,
+        bathrooms: body.bathrooms ? Number(body.bathrooms) : undefined,
+        floor: body.floor ? Number(body.floor) : undefined,
+        parking: body.parking === "true",
       });
 
       const updatedProperty = await propertiesService.updateProperty(

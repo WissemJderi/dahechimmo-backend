@@ -18,18 +18,21 @@ const env_1 = require("../config/env");
 const propertiesService_1 = __importDefault(require("../services/propertiesService"));
 const authService_1 = __importDefault(require("../services/authService"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
+const zod_1 = __importDefault(require("zod"));
 const authRouter = (0, express_1.Router)();
+const loginSchema = zod_1.default.object({
+    username: zod_1.default.string(),
+    password: zod_1.default.string(),
+});
 authRouter.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { username, password } = req.body;
-    if (!username || !password) {
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) {
         return res.status(400).json({ error: "username and password required" });
     }
+    const { username, password } = parsed.data;
     if (username === env_1.ADMIN && (yield bcrypt_1.default.compare(password, env_1.PASSWORD))) {
-        const userForToken = {
-            username: username,
-        };
-        const token = jsonwebtoken_1.default.sign(userForToken, env_1.SECRET, { expiresIn: "7d" });
-        return res.status(200).json({ token, username: username });
+        const token = jsonwebtoken_1.default.sign({ username }, env_1.SECRET, { expiresIn: "7d" });
+        return res.status(200).json({ token, username });
     }
     return res.status(401).json({
         error: "invalid username or password",

@@ -21,8 +21,5 @@ if (!MONGODB_URI) {
   throw new Error("MONGODB_URI is not defined in environment variables");
 }
 
-connectToDatabase(MONGODB_URI);
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+void connectToDatabase(MONGODB_URI);
+app.listen(PORT);
