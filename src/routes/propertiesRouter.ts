@@ -2,8 +2,6 @@ import { Request, Router } from "express";
 import propertiesService from "../services/propertiesService";
 import { cloudinary, upload } from "../config/cloudinary";
 import authService from "../services/authService";
-import jwt from "jsonwebtoken";
-import { SECRET } from "../config/env";
 import { getPublicIdFromUrl } from "../utils";
 import {
   objectIdSchema,
@@ -41,27 +39,28 @@ propertiesRouter.get("/search", async (req, res, next) => {
   }
 });
 
+const deleteUploadedImages = (imageUrls: string[]) => {
+  const deletePromises = imageUrls.map((imageUrl) => {
+    const publicId = getPublicIdFromUrl(imageUrl);
+    return cloudinary.uploader.destroy(publicId);
+  });
+  return Promise.all(deletePromises);
+};
+
 propertiesRouter.post(
   "/",
-  upload.array("images", 5), // Back to cloudinary upload
+  authService.authenticate,
+  upload.array("images", 5),
   async (req, res, next) => {
-    const token = authService.getTokenFrom(req);
-    if (!token) {
-      res.status(401).json({ error: "token missing" });
+    const imageUrls =
+      (req.files as Express.Multer.File[])?.map((file) => file.path) || [];
+
+    if (imageUrls.length === 0) {
+      res.status(400).json({ error: "At least one image is required" });
       return;
     }
 
     try {
-      jwt.verify(token, SECRET);
-
-      const imageUrls =
-        (req.files as Express.Multer.File[])?.map((file) => file.path) || [];
-
-      if (imageUrls.length === 0) {
-        res.status(400).json({ error: "At least one image is required" });
-        return;
-      }
-
       const body = req.body as PropertyFormBody;
 
       const propertyData = propertySchema.parse({
@@ -83,16 +82,9 @@ propertiesRouter.post(
       const newProperty = await propertiesService.addProperty(propertyData);
       res.status(201).json(newProperty);
     } catch (error) {
+      await deleteUploadedImages(imageUrls);
       if (error instanceof z.ZodError) {
         res.status(400).send({ error: error.issues });
-        return;
-      }
-      if (error instanceof jwt.TokenExpiredError) {
-        res.status(401).json({ error: "token expired" });
-        return;
-      }
-      if (error instanceof jwt.JsonWebTokenError) {
-        res.status(401).json({ error: "invalid token" });
         return;
       }
       next(error);
@@ -117,120 +109,94 @@ propertiesRouter.get("/:id", async (req, res, next): Promise<void> => {
   }
 });
 
-propertiesRouter.delete("/:id", async (req, res, next) => {
-  if (!objectIdSchema.safeParse(req.params.id).success) {
-    res.status(400).json({ error: "Invalid property id" });
-    return;
-  }
-
-  const token = authService.getTokenFrom(req);
-
-  if (!token) {
-    res.status(401).json({ error: "token missing" });
-    return;
-  }
-
-  try {
-    jwt.verify(token, SECRET);
-
-    const property = await propertiesService.getProperty(req.params.id);
-
-    if (!property) {
-      res.status(404).json({ error: "Property not found" });
-      return;
-    }
-
-    const deleteImagePromises = property.images.map((imageUrl) => {
-      const publicId = getPublicIdFromUrl(imageUrl);
-      return cloudinary.uploader.destroy(publicId);
-    });
-
-    await Promise.all(deleteImagePromises);
-    const deletedProperty = await propertiesService.deleteProperty(
-      req.params.id,
-    );
-
-    res.json({
-      message: "Property and images deleted successfully",
-      deletedProperty,
-    });
-  } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      res.status(401).json({ error: "token expired" });
-      return;
-    }
-    if (error instanceof jwt.JsonWebTokenError) {
-      res.status(401).json({ error: "invalid token" });
-      return;
-    }
-    next(error);
-  }
-});
-
-propertiesRouter.put(
+propertiesRouter.delete(
   "/:id",
-  upload.array("images", 5), // Allow new images
+  authService.authenticate,
   async (req: Request<{ id: string }>, res, next) => {
     if (!objectIdSchema.safeParse(req.params.id).success) {
       res.status(400).json({ error: "Invalid property id" });
       return;
     }
 
-    const token = authService.getTokenFrom(req);
+    try {
+      const property = await propertiesService.getProperty(req.params.id);
 
-    if (!token) {
-      res.status(401).json({ error: "token missing" });
+      if (!property) {
+        res.status(404).json({ error: "Property not found" });
+        return;
+      }
+
+      const deleteImagePromises = property.images.map((imageUrl) => {
+        const publicId = getPublicIdFromUrl(imageUrl);
+        return cloudinary.uploader.destroy(publicId);
+      });
+
+      await Promise.all(deleteImagePromises);
+      const deletedProperty = await propertiesService.deleteProperty(
+        req.params.id,
+      );
+
+      res.json({
+        message: "Property and images deleted successfully",
+        deletedProperty,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+propertiesRouter.put(
+  "/:id",
+  authService.authenticate,
+  upload.array("images", 5),
+  async (req: Request<{ id: string }>, res, next) => {
+    if (!objectIdSchema.safeParse(req.params.id).success) {
+      res.status(400).json({ error: "Invalid property id" });
       return;
     }
 
-    try {
-      jwt.verify(token, SECRET);
+    const newImageUrls =
+      (req.files as Express.Multer.File[])?.map((file) => file.path) || [];
 
+    try {
       // Get existing property
       const existingProperty = await propertiesService.getProperty(
         req.params.id,
       );
 
       if (!existingProperty) {
+        await deleteUploadedImages(newImageUrls);
         res.status(404).json({ error: "Property not found" });
         return;
       }
 
-      // Handle new images if uploaded
-      const newImageUrls =
-        (req.files as Express.Multer.File[])?.map((file) => file.path) || [];
-
-      const body = req.body as PropertyFormBody;
-
       // Parse existing images from request body (if frontend sends them)
-      const rawExistingImages = body.existingImages;
-      const existingImages: string[] =
-        typeof rawExistingImages === "string"
-          ? (JSON.parse(rawExistingImages) as string[])
-          : existingProperty.images;
+      const rawExistingImages = (req.body as PropertyFormBody).existingImages;
+      let existingImages: string[];
+      if (typeof rawExistingImages === "string") {
+        try {
+          existingImages = JSON.parse(rawExistingImages) as string[];
+        } catch {
+          await deleteUploadedImages(newImageUrls);
+          res.status(400).json({ error: "Invalid existingImages" });
+          return;
+        }
+      } else {
+        existingImages = existingProperty.images;
+      }
 
       // Combine existing + new images
       const allImages = [...existingImages, ...newImageUrls];
 
       // Validate max 5 images
       if (allImages.length > 5) {
+        await deleteUploadedImages(newImageUrls);
         res.status(400).json({ error: "Maximum 5 images allowed" });
         return;
       }
 
-      // Find deleted images (were in DB but not in request)
-      const deletedImages = existingProperty.images.filter(
-        (img) => !existingImages.includes(img),
-      );
-
-      // Delete removed images from Cloudinary
-      if (deletedImages.length > 0) {
-        const deletePromises = deletedImages.map((imageUrl) => {
-          const publicId = getPublicIdFromUrl(imageUrl);
-          return cloudinary.uploader.destroy(publicId);
-        });
-        await Promise.all(deletePromises);
-      }
+      const body = req.body as PropertyFormBody;
 
       const propertyData = propertySchema.parse({
         title: body.title,
@@ -248,6 +214,16 @@ propertiesRouter.put(
         parking: body.parking === "true",
       });
 
+      // Find deleted images (were in DB but not in request)
+      const deletedImages = existingProperty.images.filter(
+        (img) => !existingImages.includes(img),
+      );
+
+      // Delete removed images from Cloudinary
+      if (deletedImages.length > 0) {
+        await deleteUploadedImages(deletedImages);
+      }
+
       const updatedProperty = await propertiesService.updateProperty(
         req.params.id,
         propertyData,
@@ -255,16 +231,9 @@ propertiesRouter.put(
 
       res.json(updatedProperty);
     } catch (error) {
+      await deleteUploadedImages(newImageUrls);
       if (error instanceof z.ZodError) {
         res.status(400).json({ error: error.issues });
-        return;
-      }
-      if (error instanceof jwt.TokenExpiredError) {
-        res.status(401).json({ error: "token expired" });
-        return;
-      }
-      if (error instanceof jwt.JsonWebTokenError) {
-        res.status(401).json({ error: "invalid token" });
         return;
       }
       next(error);
