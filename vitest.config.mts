@@ -11,7 +11,7 @@ export default defineConfig({
       API_SECRET: "test",
       JWT_SECRET: "test",
       ADMIN: "admin",
-      PASSWORD: "$2b$10$abcdefghijklmnopqrstuv",
+      PASSWORD: "$2b$10$QDNOjEwvhdFgnZcsI2Nv3uH6eK91oUFQAdwIAYZK.QWuA/jxTvHZa",
       PORT: "3001",
     },
   },

@@ -34,6 +34,45 @@ const existingProperty = {
   images: ["https://res.cloudinary.com/dummy/image/upload/properties/old.jpg"],
 };
 
+describe("GET /api/properties", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedService.getProperties.mockResolvedValue({
+      properties: [],
+      total: 42,
+    });
+  });
+
+  it("passes default pagination and exposes the total count", async () => {
+    const response = await request(app).get("/api/properties");
+
+    expect(response.status).toBe(200);
+    expect(mockedService.getProperties).toHaveBeenCalledWith({
+      page: 1,
+      limit: 16,
+    });
+    expect(response.headers["x-total-count"]).toBe("42");
+  });
+
+  it("passes the requested page and limit", async () => {
+    await request(app).get("/api/properties?page=2&limit=9");
+
+    expect(mockedService.getProperties).toHaveBeenCalledWith({
+      page: 2,
+      limit: 9,
+    });
+  });
+
+  it("rejects out-of-range pagination", async () => {
+    const response = await request(app).get("/api/properties?page=0&limit=60");
+
+    expect(response.status).toBe(400);
+    expect(response.body as { error: string }).toEqual({
+      error: "Invalid query parameters",
+    });
+  });
+});
+
 describe("POST /api/properties", () => {
   beforeEach(() => {
     vi.clearAllMocks();
