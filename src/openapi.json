@@ -1,0 +1,233 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Dahechimmo Backend API",
+    "version": "1.0.0",
+    "description": "REST API for the hichimmo real estate platform"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Database connected",
+            "content": {
+              "application/json": {
+                "example": { "status": "ok" }
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable",
+            "content": {
+              "application/json": {
+                "example": { "status": "unavailable" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ping": {
+      "get": {
+        "summary": "Liveness check",
+        "responses": {
+          "200": {
+            "description": "pong"
+          }
+        }
+      }
+    },
+    "/api/properties": {
+      "get": {
+        "summary": "List properties (newest first, paginated)",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 50, "default": 16 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of properties; total count in X-Total-Count header"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a property (admin, multipart form with up to 5 images)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "ref", "description", "price", "propertyType", "location", "area", "status", "images"],
+                "properties": {
+                  "title": { "type": "string" },
+                  "ref": { "type": "string" },
+                  "description": { "type": "string" },
+                  "price": { "type": "number" },
+                  "propertyType": { "type": "string" },
+                  "location": { "type": "string" },
+                  "area": { "type": "number" },
+                  "status": { "type": "string", "enum": ["sale", "rent"] },
+                  "images": { "type": "array", "items": { "type": "string", "format": "binary" }, "maxItems": 5 },
+                  "bedrooms": { "type": "number" },
+                  "bathrooms": { "type": "number" },
+                  "floor": { "type": "number" },
+                  "parking": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Property created" },
+          "400": { "description": "Validation error" },
+          "401": { "description": "Missing or invalid token" },
+          "413": { "description": "File too large" }
+        }
+      }
+    },
+    "/api/properties/search": {
+      "get": {
+        "summary": "Search properties by location and type (paginated)",
+        "parameters": [
+          {
+            "name": "location",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 50, "default": 16 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of matching properties; total count in X-Total-Count header"
+          },
+          "400": { "description": "Invalid query parameters" }
+        }
+      }
+    },
+    "/api/properties/{id}": {
+      "get": {
+        "summary": "Get a single property",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The property" },
+          "400": { "description": "Invalid property id" },
+          "404": { "description": "Property not found" }
+        }
+      },
+      "put": {
+        "summary": "Update a property (admin, multipart form)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Property updated" },
+          "400": { "description": "Validation error" },
+          "401": { "description": "Missing or invalid token" },
+          "404": { "description": "Property not found" }
+        }
+      },
+      "delete": {
+        "summary": "Delete a property and its Cloudinary images (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Property and images deleted" },
+          "400": { "description": "Invalid property id" },
+          "401": { "description": "Missing or invalid token" },
+          "404": { "description": "Property not found" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "Log in as admin and receive a JWT (rate limited)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Token issued" },
+          "400": { "description": "username and password required" },
+          "401": { "description": "invalid username or password" },
+          "429": { "description": "Too many requests" }
+        }
+      }
+    },
+    "/api/auth/properties": {
+      "get": {
+        "summary": "List all properties (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "All properties" },
+          "401": { "description": "Missing or invalid token" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

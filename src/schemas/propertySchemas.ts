@@ -23,3 +23,8 @@ export const searchParamsSchema = z.object({
 });
 
 export const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/);
+
+export const pageParamsSchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(50).default(16),
+});

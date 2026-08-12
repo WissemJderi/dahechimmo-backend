@@ -1,5 +1,6 @@
 import { Router } from "express";
 import jwt from "jsonwebtoken";
+import rateLimit from "express-rate-limit";
 import { SECRET, PASSWORD, ADMIN } from "../config/env";
 import propertiesService from "../services/propertiesService";
 import authService from "../services/authService";
@@ -13,7 +14,17 @@ const loginSchema = z.object({
   password: z.string(),
 });
 
-authRouter.post("/login", async (req, res) => {
+const loginLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).json({ error: "Too many requests" });
+  },
+});
+
+authRouter.post("/login", loginLimiter, async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "username and password required" });
@@ -33,7 +44,7 @@ authRouter.post("/login", async (req, res) => {
 
 authRouter.get("/properties", authService.authenticate, async (_req, res, next) => {
   try {
-    const result = await propertiesService.getProperties();
+    const result = await propertiesService.getAllProperties();
     res.json(result);
   } catch (error) {
     next(error);

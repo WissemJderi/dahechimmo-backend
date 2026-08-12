@@ -5,6 +5,7 @@ import authService from "../services/authService";
 import { getPublicIdFromUrl } from "../utils";
 import {
   objectIdSchema,
+  pageParamsSchema,
   propertySchema,
   searchParamsSchema,
 } from "../schemas/propertySchemas";
@@ -14,10 +15,20 @@ type PropertyFormBody = Record<string, unknown>;
 
 const propertiesRouter = Router();
 
-propertiesRouter.get("/", async (_req, res, next) => {
+propertiesRouter.get("/", async (req, res, next) => {
   try {
-    const result = await propertiesService.getProperties();
-    res.json(result);
+    const parsed = pageParamsSchema.safeParse(req.query);
+
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid query parameters" });
+      return;
+    }
+
+    const { properties, total } = await propertiesService.getProperties(
+      parsed.data,
+    );
+    res.set("X-Total-Count", String(total));
+    res.json(properties);
   } catch (error) {
     next(error);
   }
@@ -32,8 +43,14 @@ propertiesRouter.get("/search", async (req, res, next) => {
       return;
     }
 
-    const result = await propertiesService.searchProperties(parsed.data);
-    res.json(result);
+    const pageParams = pageParamsSchema.parse(req.query);
+
+    const result = await propertiesService.searchProperties(
+      parsed.data,
+      pageParams,
+    );
+    res.set("X-Total-Count", String(result.total));
+    res.json(result.properties);
   } catch (error) {
     next(error);
   }
