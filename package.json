@@ -7,11 +7,11 @@
   "type": "commonjs",
   "main": "index.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node build/index.js",
     "dev": "ts-node-dev ./src/index.ts",
     "lint": "eslint .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
@@ -20,10 +20,13 @@
     "@types/express": "^5.0.6",
     "@types/multer": "^2.0.0",
     "@types/node": "^25.2.1",
+    "@types/supertest": "^7.2.1",
     "eslint": "^9.39.2",
+    "supertest": "^7.2.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.54.0"
+    "typescript-eslint": "^8.54.0",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@types/bcrypt": "^6.0.0",

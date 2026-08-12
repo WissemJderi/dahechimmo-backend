@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import multer from "multer";
 
 type HttpError = { status?: unknown; message?: unknown };
 
@@ -11,6 +12,12 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction,
 ) => {
+  if (err instanceof multer.MulterError) {
+    const status = err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+    res.status(status).json({ error: err.message });
+    return;
+  }
+
   console.error(err instanceof Error ? err.stack : err);
   const status =
     isHttpError(err) && typeof err.status === "number" ? err.status : 500;
