@@ -18,7 +18,7 @@ const app = express();
 
 app.set("trust proxy", true);
 app.use(helmet());
-app.use(cors({ origin: allowedOrigins }));
+app.use(cors({ origin: allowedOrigins, exposedHeaders: ["X-Total-Count"] }));
 app.use(express.json({ limit: "1mb" }));
 app.use("/api/properties", propertiesRouter);
 app.use("/api/auth", authRouter);

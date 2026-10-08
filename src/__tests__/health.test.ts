@@ -39,3 +39,14 @@ describe("unknown routes", () => {
     });
   });
 });
+describe("CORS", () => {
+  it("exposes X-Total-Count so the frontend can paginate", async () => {
+    const response = await request(app)
+      .get("/ping")
+      .set("Origin", "https://dahechimmo.vercel.app");
+
+    expect(response.headers["access-control-expose-headers"]).toContain(
+      "X-Total-Count",
+    );
+  });
+});
