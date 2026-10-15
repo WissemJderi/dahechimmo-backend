@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     environment: "node",
     exclude: ["build/**", "node_modules/**", "dist/**"],
+    hookTimeout: 60_000, // mongodb-memory-server start is slow when files run in parallel
     env: {
       MONGODB_URI: "mongodb://localhost:27017/test",
       CLOUDINARY_NAME: "test",
