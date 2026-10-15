@@ -2,18 +2,18 @@ import z from "zod";
 import { Location, PropertyType, Status } from "../types";
 
 export const propertySchema = z.object({
-  title: z.string(),
-  ref: z.string(),
-  description: z.string(),
-  price: z.number().gte(1),
+  title: z.string().trim().min(1).max(200),
+  ref: z.string().trim().min(1).max(50),
+  description: z.string().min(1).max(5000),
+  price: z.number().gte(1).lte(1_000_000_000),
   propertyType: z.enum(PropertyType),
   location: z.enum(Location),
-  area: z.number().gte(1),
+  area: z.number().gte(1).lte(1_000_000),
   status: z.enum(Status),
-  images: z.array(z.string()).min(1).max(5),
-  bedrooms: z.number().optional(),
-  bathrooms: z.number().optional(),
-  floor: z.number().optional(),
+  images: z.array(z.string().max(1000)).min(1).max(5),
+  bedrooms: z.number().int().min(0).max(50).optional(),
+  bathrooms: z.number().int().min(0).max(50).optional(),
+  floor: z.number().int().min(-10).max(200).optional(),
   parking: z.boolean(),
 });
 
