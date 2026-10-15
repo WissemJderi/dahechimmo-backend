@@ -10,7 +10,10 @@ const getProperty = (id: string) => Property.findById(id).lean();
 const getAllProperties = () => Property.find({}).sort({ _id: -1 }).lean();
 
 const updateProperty = (id: string, data: Partial<IProperty>) =>
-  Property.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+  Property.findByIdAndUpdate(id, data, {
+    returnDocument: "after",
+    runValidators: true,
+  });
 
 const deleteProperty = (id: string) => Property.findByIdAndDelete(id);
 

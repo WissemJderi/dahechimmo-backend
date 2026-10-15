@@ -64,6 +64,11 @@ const deleteUploadedImages = (imageUrls: string[]) => {
   return Promise.all(deletePromises);
 };
 
+const isDuplicateKeyError = (error: unknown): boolean => {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === "number" && code === 11000;
+};
+
 propertiesRouter.post(
   "/",
   authService.authenticate,
@@ -102,6 +107,10 @@ propertiesRouter.post(
       await deleteUploadedImages(imageUrls);
       if (error instanceof z.ZodError) {
         res.status(400).send({ error: error.issues });
+        return;
+      }
+      if (isDuplicateKeyError(error)) {
+        res.status(409).json({ error: "Property reference already exists" });
         return;
       }
       next(error);
@@ -251,6 +260,10 @@ propertiesRouter.put(
       await deleteUploadedImages(newImageUrls);
       if (error instanceof z.ZodError) {
         res.status(400).json({ error: error.issues });
+        return;
+      }
+      if (isDuplicateKeyError(error)) {
+        res.status(409).json({ error: "Property reference already exists" });
         return;
       }
       next(error);
